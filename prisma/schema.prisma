@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  groups        GroupMember[]
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  createdAt   DateTime      @default(now())
+  members     GroupMember[]
+  expenses    Expense[]
+}
+
+model GroupMember {
+  id        String    @id @default(cuid())
+  name      String
+  color     String?
+  avatar    String?
+  userId    String?   // Null if it's just a participant name
+  user      User?     @relation(fields: [userId], references: [id])
+  groupId   String
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  splits    Split[]
+  expenses  Expense[] // Expenses paid by this member
+}
+
+model Expense {
+  id          String       @id @default(cuid())
+  amount      Float
+  description String
+  date        DateTime     @default(now())
+  groupId     String
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  payerId     String
+  payer       GroupMember  @relation(fields: [payerId], references: [id])
+  splits      Split[]
+  splitType   String       @default("EQUAL") // EQUAL, PERCENT, EXACT
+}
+
+model Split {
+  id        String       @id @default(cuid())
+  expenseId String
+  expense   Expense      @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    GroupMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  amount    Float
+}
